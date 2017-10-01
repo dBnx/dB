@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Project specific
+
+_legacy/*
+
+desktop.ini
