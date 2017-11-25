@@ -1,11 +1,11 @@
 
 
-#include "__Ctrl.hpp"
+#include "System.hpp"
 
 #ifndef ___DB_SFML_NETWORK_HPP_		// Guard
 #define ___DB_SFML_NETWORK_HPP_	
 
-  #if STATIC						// Link Static
+  #ifdef STATIC						// Link Static
     #ifdef _DEBUG
       #pragma comment (lib, "SFML\\sfml-network-s-d.lib")
     #else
@@ -24,6 +24,7 @@
 
 #include <SFML\Network.hpp>
 #include <string>
+#include <sstream>
 #include <optional>
 
 namespace dB

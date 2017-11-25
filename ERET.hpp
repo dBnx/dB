@@ -1,16 +1,16 @@
 
 #pragma once
 
-#include <string>
-#include <sstream>
-#include <fstream>
+#include <dB\Include.hpp>
 
-#include <optional>
 #include <iostream>
 #include <iomanip>
 
 #include <cstdint>
 #include <ctime>
+
+#ifndef __DB_ERET_HPP
+#define __DB_ERET_HPP
 
 #ifdef __GNUC__
 
@@ -48,7 +48,17 @@ namespace dB
 
 		time(&rawtime);
 
+		/*
+#ifdef _MSC_VER
+		struct tm newtime; 
+		localtime_s(&newtime, &rawtime);
+		strftime(buffer, sizeof(buffer), "%Y-%m-%d %T", (const tm*) newtime);
+#else
 		strftime(buffer, sizeof(buffer), "%Y-%m-%d %T", localtime(&rawtime));
+#endif
+		*/
+		strftime(buffer, sizeof buffer, "%Y-%m-%d %T", localtime(&rawtime));
+
 		return std::string(buffer);
 	}
 
@@ -137,6 +147,12 @@ namespace dB
 		{
 			if (of.is_open())
 				of << this->Log_Str() << "\n";
+			return *this;
+		}
+		_Eret& Throw_If_Error()
+		{
+			if (this->code < 0)
+				throw std::runtime_error(std::to_string(this->code)+" - "+this->msg);
 			return *this;
 		}
 		_Eret& Abort_If_Error()
@@ -263,3 +279,5 @@ using EretPair(e, t) = _EretPair<decltype(t)> (Eret e, T t);
 cout << EretPair<std::string>(Eret("Test", -1), "Value") \
 .Log().Abort_If_Error().Value() << endl;
 */
+
+#endif // !__DB_ERET_HPP

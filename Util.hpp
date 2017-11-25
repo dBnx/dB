@@ -11,6 +11,9 @@
 #include <algorithm>
 #include "ERET.hpp"
 
+#include <GLM\vec2.hpp>
+#include <GLM\vec3.hpp>
+
 #ifdef INC_TESTBENCH
 #include <GLM\vec2.hpp>
 
@@ -18,6 +21,8 @@
 #include <iostream>
 #endif // INC_TESTBENCH
 
+#ifndef __DB_UTIL_HPP
+#define __DB_UTIL_HPP
 
 namespace dB
 {
@@ -27,7 +32,8 @@ namespace dB
 	private:
 		std::chrono::time_point<std::chrono::high_resolution_clock> _last;
 
-		T	_Update_Or_Difference(const unsigned update, const unsigned calc_dur = 0)
+		constexpr
+		T	_Update_Or_Difference(const unsigned update, const unsigned calc_dur = 0) 
 		{
 			using clk_highres = std::chrono::high_resolution_clock;
 			//typedef std::chrono::duration<T, Ratio> DurCast;
@@ -65,11 +71,13 @@ namespace dB
 			this->_Update_Or_Difference(1, 0);
 		}
 
-		T	Difference()
+		constexpr
+		T	Difference() 
 		{
 			return this->_Update_Or_Difference(0, 1);
 		}
 
+		constexpr
 		T	Update_Difference()
 		{
 			return this->_Update_Or_Difference(1, 1);
@@ -82,6 +90,57 @@ namespace dB
 				this->_last = other->_last;
 			}
 		}
+	};
+
+	class FPSTool
+	{
+	private:
+		dB::HighResTimer<double>	t;
+		size_t						frames{ 0 };
+		size_t						fps_limit{ 0 };
+
+		constexpr float Frames()
+		{
+			return static_cast<float>(this->frames);
+		}
+
+	public:
+		FPSTool(size_t limit = 0) : fps_limit(limit)
+		{
+
+		}
+
+		~FPSTool()
+		{
+
+		}
+
+		void Reset()
+		{
+			this->frames = 0;
+			this->t.Update();
+		}
+
+		constexpr bool HasTimePassed(double t = 1.f)
+		{
+			return (this->t.Difference() > t) ? true : false;
+		}
+
+		double GetFPS()
+		{
+			return this->Frames() / this->t.Difference();
+		}
+
+		double GetSPF()
+		{
+			return this->t.Difference() / this->Frames();
+		}
+
+		void FrameInc()
+		{
+			this->frames++;
+		}
+
 	};
 }
 
@@ -215,3 +274,5 @@ namespace dB::Math
 	}
 #endif // INC_TESTBENCH
 }
+
+#endif // !__DB_UTIL_HPP

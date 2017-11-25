@@ -1,8 +1,15 @@
 
-#include <own\Include.hpp>
-#include <own\ERET.hpp>
-#include <own\Math.hpp>
-#include <own\Util.hpp>
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif // !_CRT_SECURE_NO_WARNINGS
+
+#ifndef __DB_DB_HPP
+#define __DB_DB_HPP
+
+#include <dB\Include.hpp>
+#include <dB\ERET.hpp>
+#include <dB\Math.hpp>
+#include <dB\Util.hpp>
 
 #ifdef __GNUC__
 
@@ -25,3 +32,5 @@
 #endif // !unlikely
 
 #endif // !__GNUC__
+
+#endif // !__DB_DB_HPP
