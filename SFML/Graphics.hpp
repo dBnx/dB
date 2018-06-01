@@ -9,22 +9,32 @@
 
   #ifdef STATIC				// Link Static
     #ifdef _DEBUG
-      #pragma comment (lib, "SFML\\sfml-graphics-s-d.lib")
+      #pragma comment (lib, "sfml-graphics-s-d.lib")
     #else
-      #pragma comment (lib, "SFML\\sfml-graphics-s.lib")
+      #pragma comment (lib, "sfml-graphics-s.lib")
     #endif // _DEBUG
 
   #else						// Link Dynamic
     #ifdef _DEBUG
-      #pragma comment (lib, "SFML\\sfml-graphics-d.lib")
+      #pragma comment (lib, "sfml-graphics-d.lib")
     #else
-      #pragma comment (lib, "SFML\\sfml-graphics.lib")
+      #pragma comment (lib, "sfml-graphics.lib")
     #endif // _DEBUG
   #endif  // STATIC
 
-// Other Libs
-#pragma comment (lib, "SFML\\freetype.lib")
-#pragma comment (lib, "SFML\\jpeg.lib")
+#ifdef _DEBUG
+  #pragma comment (lib, "glew32d.lib")
+#else
+  #pragma comment (lib, "glew32.lib")
+#endif // _DEBUG
+
+#ifdef _DEBUG
+  #pragma comment (lib, "freetyped.lib")
+#else
+  #pragma comment (lib, "freetype.lib")
+#endif // _DEBUG
+
+#pragma comment (lib, "jpeg.lib")
 
 #endif // !___DV_SFML_GRAPHICS_HPP_
 

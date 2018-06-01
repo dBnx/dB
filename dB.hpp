@@ -1,7 +1,9 @@
 
 #ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS 1
 #endif // !_CRT_SECURE_NO_WARNINGS
+
+#pragma comment(lib, "Ws2_32.lib")
 
 #ifndef __DB_DB_HPP
 #define __DB_DB_HPP
@@ -10,6 +12,8 @@
 #include <dB\ERET.hpp>
 #include <dB\Math.hpp>
 #include <dB\Util.hpp>
+#include <dB\Io.hpp>
+//#include <dB\>
 
 #ifdef __GNUC__
 

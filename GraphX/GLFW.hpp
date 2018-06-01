@@ -1,6 +1,7 @@
 
 #pragma once
 
+
 #ifdef NO_STATIC
 #define GLFW_DLL
 #else
@@ -49,8 +50,10 @@
 // Switches												     //
 ///////////////////////////////////////////////////////////////
 
+#if !defined(GLM_FORCE_RADIANS) && !defined(GLM_FORCE_DEPTH_ZERO_TO_ONE) 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#endif // OWN_USE_GLEW
 
 
 ///////////////////////////////////////////////////////////////
@@ -68,17 +71,16 @@
 #include <GLFW\glfw3.h>
 #include <glm\glm.hpp>
 
-/*
-#include <glm/common.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
-*/
-
+#ifdef OWN_USE_GLEW
+#include "GL.hpp"
+#endif 
 
 #ifdef OWN_USE_VULKAN
 
 #endif // OWN_USE_VULKAN
+
+#include <string>
+#include <string_view>
 
 #ifndef __DB_GLFW_HPP
 #define __DB_GLFW_HPP
@@ -91,191 +93,19 @@ namespace dB::glew
 		glewExperimental = GL_TRUE;
 		return Eret("GLEW Initialisation", !glewInit() ? 0 : -1);
 	}
-}
 
-namespace dB::gl
-{
-	namespace imm
+	Eret GetError()
 	{
-		void Color(glm::vec3 color = glm::vec3{ 0.0f, 0.4f, 1.0f })
-		{
-			glColor3f(color.x, color.y, color.z);
-		}
-
-		void Vertex(glm::vec2 pos)
-		{
-			glVertex2f(pos.x, pos.y);
-		}
-	}
-
-	namespace buffer
-	{
-		enum class BufferType : int8_t
-		{
-			VERTEX = 0x01,
-			COLOR = VERTEX,
-			NORMAL = VERTEX,
-			INDEX = 0x02,
-		};
-
-		inline bool operator & (BufferType lhs, BufferType rhs)
-		{
-			return std::underlying_type_t <BufferType>(std::underlying_type_t <BufferType>(lhs) & std::underlying_type_t <BufferType>(rhs));
-		}
-
-		inline bool operator | (BufferType lhs, BufferType rhs)
-		{
-			return std::underlying_type_t <BufferType>(std::underlying_type_t <BufferType>(lhs) | std::underlying_type_t <BufferType>(rhs));
-		}
-
-		constexpr GLenum EnumToGlEnum(BufferType type)
-		{
-			return	type & BufferType::INDEX ? GL_ELEMENT_ARRAY_BUFFER_ARB : GL_ARRAY_BUFFER_ARB;
-		}
-
-		enum class Usage : int16_t
-		{
-			STATIC_DRAW = 0x00'01,
-			STATIC_READ = 0x00'02,
-			STATIC_DRAW_READ = 0x00'04,
-			STATIC_COPY = STATIC_DRAW_READ,
-			DYNAMIC_DRAW = 0x00'10,
-			DYNAMIC_READ = 0x00'20,
-			DYNAMIC_DRAW_READ = 0x00'40,
-			DYNAMIC_COPY = DYNAMIC_DRAW_READ,
-			STREAM_DRAW = 0x01'00,
-			STREAM_READ = 0x02'00,
-			STREAM_DRAW_READ = 0x04'00,
-			STREAM_COPY = STREAM_DRAW_READ,
-		};
-
-		inline bool operator & (Usage lhs, Usage rhs)
-		{
-			return std::underlying_type_t <Usage>(std::underlying_type_t <Usage>(lhs) & std::underlying_type_t <Usage>(rhs));
-		}
-
-		inline bool operator | (Usage lhs, Usage rhs)
-		{
-			return std::underlying_type_t <Usage>(std::underlying_type_t <Usage>(lhs) | std::underlying_type_t <Usage>(rhs));
-		}
-
-		constexpr GLenum EnumToGlEnum(Usage type)
-		{
-			return
-				type & Usage::STATIC_DRAW ? GL_STATIC_DRAW_ARB
-				: type & Usage::STATIC_READ ? GL_STATIC_READ_ARB
-				: type & Usage::STATIC_COPY ? GL_STATIC_COPY_ARB
-				: type & Usage::DYNAMIC_DRAW ? GL_DYNAMIC_DRAW_ARB
-				: type & Usage::DYNAMIC_READ ? GL_DYNAMIC_READ_ARB
-				: type & Usage::DYNAMIC_COPY ? GL_DYNAMIC_COPY_ARB
-				: type & Usage::STREAM_DRAW ? GL_STREAM_DRAW_ARB
-				: type & Usage::STREAM_READ ? GL_STREAM_READ_ARB
-				: type & Usage::STREAM_COPY ? GL_STREAM_COPY_ARB
-				: GL_DYNAMIC_DRAW_ARB;
-		}
-
-		template < BufferType type = BufferType::VERTEX, Usage usage = Usage::DYNAMIC_DRAW >
-		class Buffer
-		{
-		private:
-
-			GLuint bufferId{};
-			const GLenum target{ EnumToGlEnum(type) };
-			const GLenum usetype{ EnumToGlEnum(usage) };
-
-		public:
-
-			void Bind()
-			{
-				glBindBufferARB(target, bufferId);
-			}
-
-			void Create(bool initialise = true)
-			{
-				glGenBuffersARB(1, &bufferId);
-
-				if (initialise)
-					this->Bind();		// First binding initialises the buffer with zero
-			}
-
-			Buffer( /* BufferType type = BufferType::Vertex, */ bool create = true, bool initialise = true)
-			{
-				if (create)
-					this->Create(initialise);
-			}
-
-			~Buffer()
-			{
-				glDeleteBuffersARB(1, &bufferId);
-			}
-
-			template < typename T, size_t SIZE >
-			void Write(std::array<T, SIZE> data, bool bindBuffer = true)
-			{
-				if (bindBuffer)
-					this->Bind();
-				const auto dataSize = data.size() * (sizeof data[0]);
-				glBufferDataARB(target, dataSize, &(data[0]), usetype);
-			}
-		};
+		int32_t code = static_cast<int32_t>(glGetError());
+		std::string msg = (const char*)glewGetErrorString(code);
+		return Eret(-code, std::string("OpenGL : ") + msg);
 	}
 }
+
 #endif // OWN_USE_GLEW
-
 
 namespace dB::glfw
 {
-	Eret Init()
-	{
-		return Eret( "GLFW Initialisation", glfwInit() ? 0 : -1);
-	}
-
-	Eret CreateWindow(GLFWwindow** wnd, const std::string title = "dBnx - GLFW", std::function<void(void)> setWindowHints = [](void)->void {},
-		const glm::ivec2 res = { 1024, 768 }, GLFWmonitor* mon = nullptr, GLFWwindow* share = nullptr)
-	{
-		if (*wnd)
-			glfwDestroyWindow(*wnd);
-
-		glfwDefaultWindowHints();
-		//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-		//glfwWindowHint(GLFW_SAMPLES, 4);
-		//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-		if (setWindowHints)
-			setWindowHints();
-
-		*wnd = glfwCreateWindow(res.x, res.y, title.c_str(), mon, share);
-		glfwMakeContextCurrent(*wnd);
-
-		return Eret("GLFW Window creation", *wnd ? 0 : -1);
-	}
-
-	void Terminate()
-	{
-		glfwTerminate();
-	}
-
-	void CorrectAspectRatio(GLFWwindow* wnd) // Do not use
-	{
-		assert(0);
-		int width, height;
-		glfwGetWindowSize(wnd, &width, &height);
-
-		const GLdouble aspectRatio = float(width) / float(height);
-		GLdouble xSpan = 1.f;
-		GLdouble ySpan = 1.f;
-
-		xSpan *= aspectRatio;
-		/*
-		if (aspectRatio < 1.)
-		ySpan = xSpan / aspectRatio;
-		else
-		xSpan *= aspectRatio;
-		/**/
-		glLoadIdentity(); // The OpenGL state machine is bullshit
-		glOrtho(-xSpan, xSpan, -ySpan, ySpan, -1., 1.);
-	}
-
 	namespace callback // Default callback
 	{
 		static void Key(GLFWwindow* wnd, int key, int scancode, int action, int mods)
@@ -290,19 +120,19 @@ namespace dB::glfw
 			}
 		}
 
-		static void window_size(GLFWwindow* window, int width, int height)
+		static void WindowSize(GLFWwindow* window, int width, int height)
 		{
-			
+
 			const GLdouble aspectRatio = float(width) / float(height);
-			GLdouble xSpan = 1.f; 
-			GLdouble ySpan = 1.f; 
+			GLdouble xSpan = 1.f;
+			GLdouble ySpan = 1.f;
 
 			//xSpan *= aspectRatio;
 			/*
 			if (aspectRatio < 1.)
-				ySpan = xSpan / aspectRatio;
+			ySpan = xSpan / aspectRatio;
 			else
-				xSpan *= aspectRatio;
+			xSpan *= aspectRatio;
 			/**/
 
 			//glOrtho(-xSpan, xSpan, -ySpan, ySpan, -1., 1.);
@@ -312,11 +142,71 @@ namespace dB::glfw
 		void SetCallbacks(GLFWwindow* wnd)
 		{
 			assert(wnd);
-			
+
 			glfwSetKeyCallback(wnd, Key);
-			glfwSetWindowSizeCallback(wnd, window_size);
+			glfwSetWindowSizeCallback(wnd, WindowSize);
 		}
 	}
+}
+
+namespace dB::glfw
+{
+	Eret Init()
+	{
+		return Eret( "GLFW Initialisation", glfwInit() ? 0 : -1);
+	}
+
+	Eret CreateWindow(GLFWwindow** wnd, const std::string_view title = "dBnx - GLFW", std::function<void(void)> setWindowHints = [](void)->void {},
+		const glm::ivec2 res = { 1024, 768 }, GLFWmonitor* mon = nullptr, GLFWwindow* share = nullptr)
+	{
+		if (*wnd)
+			glfwDestroyWindow(*wnd);
+
+		glfwDefaultWindowHints();
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+		glfwWindowHint(GLFW_SAMPLES, 4);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		if (setWindowHints)
+			setWindowHints();
+
+		*wnd = glfwCreateWindow(res.x, res.y, std::string(title).c_str(), mon, share);
+		glfwMakeContextCurrent(*wnd);
+
+		glfwSetInputMode(*wnd, GLFW_STICKY_KEYS, GL_TRUE); 
+		callback::SetCallbacks(*wnd);
+
+		return Eret("GLFW Window creation", *wnd ? 0 : -1);
+	}
+
+	void Terminate()
+	{
+		glfwTerminate();
+	}
+
+	/*
+	void CorrectAspectRatio(GLFWwindow* wnd) // Do not use
+	{
+		assert(0);
+		int width, height;
+		glfwGetWindowSize(wnd, &width, &height);
+
+		const GLdouble aspectRatio = float(width) / float(height);
+		GLdouble xSpan = 1.f;
+		GLdouble ySpan = 1.f;
+
+		xSpan *= aspectRatio;
+		
+		//if (aspectRatio < 1.)
+		//ySpan = xSpan / aspectRatio;
+		//else
+		//xSpan *= aspectRatio;
+		
+		glLoadIdentity(); // The OpenGL state machine is bullshit
+		glOrtho(-xSpan, xSpan, -ySpan, ySpan, -1., 1.);
+	}
+	/**/
+	
 
 	/*
 	template<typename Functor>
@@ -363,3 +253,47 @@ namespace dB::glfw
 
 #endif // !__DB_GLFW_HPP
 
+/*
+// GLFW/GLEW Simple Window 
+#include <dB/dB.hpp>
+
+#define OWN_USE_GLEW
+#include <dB/GraphX/GLFW.hpp>
+
+void Init()
+{
+
+}
+
+void Render()
+{
+
+}
+
+int main()
+{
+	GLFWwindow* wnd{};
+
+	dB::glfw::Init();
+	dB::glfw::CreateWindow(&wnd).Log().Exit_If_Error();
+
+	glfwMakeContextCurrent(wnd);
+
+	dB::glew::Init().Log().Exit_If_Error();
+
+	Init();
+
+	while (!glfwWindowShouldClose(wnd))
+	{
+		glfwPollEvents();
+
+		Render();
+
+		glfwSwapBuffers(wnd);
+	}
+
+	dB::glfw::Terminate();
+
+	return 0;
+}
+*/

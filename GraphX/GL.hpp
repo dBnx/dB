@@ -1,7 +1,12 @@
 
 #pragma once
 
-#include <dB\GraphX\GLFW.hpp>
+#include <filesystem>
+
+#ifndef __DB_GL_HPP
+#define __DB_GL_HPP
+
+//#include <dB\GraphX\GLFW.hpp>
 
 namespace dB::gl
 {
@@ -14,6 +19,9 @@ namespace dB::gl
 
 	} SHADERTYPE;
 
+	// Todo:
+	// - Add shader from ram
+	// - Load spir-v shader program
 	class SHADER
 	{
 	private:
@@ -33,7 +41,7 @@ namespace dB::gl
 			return static_cast<GLuint>(this->program);
 		}
 
-		Eret AddShaderFromDisk(SHADERTYPE type, std::string filename)
+		Eret AddShaderFromDisk(SHADERTYPE type, const std::experimental::filesystem::path filepath)//std::string filename)
 		{
 			int *id{ nullptr };
 			Eret eret("Shader creation");
@@ -57,7 +65,7 @@ namespace dB::gl
 				break;
 			}
 
-			std::ifstream	fstream(filename, std::ios::in | std::ios::ate);
+			std::ifstream	fstream(filepath, std::ios::in | std::ios::ate);
 			std::string		code{ "" };
 
 			if (!fstream.is_open())
@@ -93,7 +101,7 @@ namespace dB::gl
 			return eret;
 		}
 
-		Eret FinishCreation()
+		Eret FinishCreation(std::function<void(int)> setAttribLocations = nullptr)
 		{
 			Eret eret("Shader finalisation");
 			if (this->id_frag != -1)
@@ -106,6 +114,9 @@ namespace dB::gl
 			if (this->id_vert != -1)
 				glAttachShader(this->program, id_vert);
 
+			if (setAttribLocations)
+				setAttribLocations(ID());
+			else
 			{
 				glBindAttribLocation(ID(), 0, "uResolution");
 				glBindAttribLocation(ID(), 1, "uCenter");
@@ -158,10 +169,153 @@ namespace dB::gl
 		return ss.str();
 	}
 
-	Eret GetError()
+	void CreateDummyVAO()
 	{
-		int32_t code = static_cast<int32_t>(glGetError());
-		std::string msg = (const char*) glewGetErrorString(code);
-		return Eret(-code, std::string("OpenGL : ") + msg);
+		GLuint VertexArrayID;
+		glGenVertexArrays(1, &VertexArrayID);
+		glBindVertexArray(VertexArrayID);
 	}
 }
+
+namespace dB::gl
+{
+	namespace imm
+	{
+		void Color(glm::vec3 color = glm::vec3{ 0.0f, 0.4f, 1.0f })
+		{
+			glColor3f(color.x, color.y, color.z);
+		}
+
+		void Vertex(glm::vec2 pos)
+		{
+			glVertex2f(pos.x, pos.y);
+		}
+	}
+
+	namespace buffer
+	{
+		enum class BufferType : int8_t
+		{
+			VERTEX = 0x01,
+			COLOR = VERTEX,
+			NORMAL = VERTEX,
+			INDEX = 0x02,
+		};
+
+		inline bool operator & (BufferType lhs, BufferType rhs)
+		{
+			return std::underlying_type_t <BufferType>(std::underlying_type_t <BufferType>(lhs) & std::underlying_type_t <BufferType>(rhs));
+		}
+
+		inline bool operator | (BufferType lhs, BufferType rhs)
+		{
+			return std::underlying_type_t <BufferType>(std::underlying_type_t <BufferType>(lhs) | std::underlying_type_t <BufferType>(rhs));
+		}
+
+		constexpr GLenum EnumToGlEnum(BufferType type)
+		{
+			return	type & BufferType::INDEX ? GL_ELEMENT_ARRAY_BUFFER_ARB : GL_ARRAY_BUFFER_ARB;
+		}
+
+		enum class Usage : int16_t
+		{
+			STATIC_DRAW = 0x00'01,
+			STATIC_READ = 0x00'02,
+			STATIC_DRAW_READ = 0x00'04,
+			STATIC_COPY = STATIC_DRAW_READ,
+			DYNAMIC_DRAW = 0x00'10,
+			DYNAMIC_READ = 0x00'20,
+			DYNAMIC_DRAW_READ = 0x00'40,
+			DYNAMIC_COPY = DYNAMIC_DRAW_READ,
+			STREAM_DRAW = 0x01'00,
+			STREAM_READ = 0x02'00,
+			STREAM_DRAW_READ = 0x04'00,
+			STREAM_COPY = STREAM_DRAW_READ,
+		};
+
+		inline bool operator & (Usage lhs, Usage rhs)
+		{
+			return std::underlying_type_t <Usage>(std::underlying_type_t <Usage>(lhs) & std::underlying_type_t <Usage>(rhs));
+		}
+
+		inline bool operator | (Usage lhs, Usage rhs)
+		{
+			return std::underlying_type_t <Usage>(std::underlying_type_t <Usage>(lhs) | std::underlying_type_t <Usage>(rhs));
+		}
+
+		constexpr GLenum EnumToGlEnum(Usage type)
+		{
+			return
+				type & Usage::STATIC_DRAW ? GL_STATIC_DRAW_ARB
+				: type & Usage::STATIC_READ ? GL_STATIC_READ_ARB
+				: type & Usage::STATIC_COPY ? GL_STATIC_COPY_ARB
+				: type & Usage::DYNAMIC_DRAW ? GL_DYNAMIC_DRAW_ARB
+				: type & Usage::DYNAMIC_READ ? GL_DYNAMIC_READ_ARB
+				: type & Usage::DYNAMIC_COPY ? GL_DYNAMIC_COPY_ARB
+				: type & Usage::STREAM_DRAW ? GL_STREAM_DRAW_ARB
+				: type & Usage::STREAM_READ ? GL_STREAM_READ_ARB
+				: type & Usage::STREAM_COPY ? GL_STREAM_COPY_ARB
+				: GL_DYNAMIC_DRAW_ARB;
+		}
+
+		template < BufferType type = BufferType::VERTEX, Usage usage = Usage::DYNAMIC_DRAW >
+		class Buffer
+		{
+		private:
+
+			GLuint bufferId{};
+			const GLenum target{ EnumToGlEnum(type) };
+			const GLenum usetype{ EnumToGlEnum(usage) };
+
+		public:
+
+			GLuint ID() const
+			{
+				return bufferId;
+			}
+
+			void Bind()
+			{
+				glBindBufferARB(target, bufferId);
+			}
+
+			void Create(bool initialise = true)
+			{
+				glGenBuffersARB(1, &bufferId);
+
+				if (initialise)
+					this->Bind();		// First binding initialises the buffer with zero
+			}
+
+			Buffer( /* BufferType type = BufferType::Vertex, */ bool create = true, bool initialise = true)
+			{
+				if (create)
+					this->Create(initialise);
+			}
+
+			~Buffer()
+			{
+				glDeleteBuffersARB(1, &bufferId);
+			}
+			/*
+			template < typename T, size_t SIZE >
+			void Write(std::array<T, SIZE> &data, bool bindBuffer = true)
+			{
+				if (bindBuffer)
+					this->Bind();
+				const auto dataSize = data.size() * (sizeof data[0]);
+				glBufferDataARB(target, dataSize, &(data[0]), usetype);
+			}*/
+
+			template < typename DATA_TYPE, size_t SIZE >
+			void Write(const std::array<DATA_TYPE, SIZE> &data, const bool bindBuffer = true)
+			{
+				if (bindBuffer)
+					this->Bind();
+				const auto dataSize = data.size() * (sizeof data[0]);
+				glBufferDataARB(target, dataSize, &data[0], usetype);
+			}
+		};
+	}
+}
+#endif // !__DB_GL_HPP

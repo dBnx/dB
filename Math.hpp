@@ -5,9 +5,11 @@
 #define _USE_MATH_DEFINES
 #endif // !_USE_MATH_DEFINES
 
+#if ! __has_include("GLM\glm.hpp")
+# error Couldn't include GLM.
+#endif
+
 #include <GLM\glm.hpp>
-//#include <GLM\vec2.hpp>
-//#include <GLM\vec4.hpp>
 
 #include <cmath>
 

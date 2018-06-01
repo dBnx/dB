@@ -3,7 +3,7 @@
 #pragma fp_contract (off) // FMA
 
 #ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS 1
 #endif // !_CRT_SECURE_NO_WARNINGS
 
 #include <chrono>
@@ -11,6 +11,10 @@
 #include <algorithm>
 #include "ERET.hpp"
 
+#if !defined(GLM_FORCE_RADIANS) && !defined(GLM_FORCE_DEPTH_ZERO_TO_ONE) 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#endif // OWN_USE_GLEW
 #include <GLM\vec2.hpp>
 #include <GLM\vec3.hpp>
 
@@ -26,6 +30,14 @@
 
 namespace dB
 {
+	// West-Constable Raw C-Pointer
+	// const ptr< const type > ptr;
+	// instead of
+	// type const * const      ptr;
+	// Allows a consistent design and avoids the awful const behaviour.  
+	template< typename T >
+	using ptr = T * ;
+
 	template< typename T = double>
 	class HighResTimer
 	{
